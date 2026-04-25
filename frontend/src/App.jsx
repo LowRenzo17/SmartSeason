@@ -28,10 +28,10 @@ const InactivityMonitor = () => {
     let timeoutId;
     const resetTimer = () => {
       clearTimeout(timeoutId);
-      // 15 minutes of inactivity triggers logout
+      // 5 minutes of inactivity triggers logout
       timeoutId = setTimeout(() => {
         logout();
-      }, 15 * 60 * 1000);
+      }, 5 * 60 * 1000);
     };
 
     const events = ['mousemove', 'keydown', 'scroll', 'click'];
