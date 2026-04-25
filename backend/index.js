@@ -28,6 +28,11 @@ app.use(express.json());
 const authRoutes = require('./src/routes/auth');
 const fieldRoutes = require('./src/routes/fields');
 
+// Health check endpoint for cron-job.org
+app.get('/api/ping', (req, res) => {
+  res.status(200).json({ status: 'ok', message: 'Server is awake' });
+});
+
 app.use('/api/auth', authRoutes);
 app.use('/api/fields', fieldRoutes);
 
