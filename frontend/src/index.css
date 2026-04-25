@@ -32,6 +32,36 @@
   --shadow-hover: 0px 6px 24px rgba(27, 67, 50, 0.12);
 }
 
+.dark {
+  --color-surface: #191c1b;
+  --color-surface-dim: #111412;
+  --color-surface-container-lowest: #0f1110;
+  --color-surface-container: #1d201e;
+  --color-surface-container-high: #272b29;
+  --color-surface-container-highest: #323533;
+  
+  --color-on-surface: #e1e3e1;
+  --color-on-surface-variant: #bfc9c3;
+  
+  --color-primary: #86af99;
+  --color-primary-container: #012d1d;
+  --color-on-primary-container: #a5d0b9;
+  --color-inverse-primary: #1b4332;
+  
+  --color-secondary: #e6bdae;
+  --color-secondary-container: #5c3f35;
+  
+  --color-atrisk: #ff8b57;
+  --color-healthy: #276b4a;
+  --color-dormant: #414844;
+  
+  --color-outline: #8b938d;
+  --color-outline-variant: #414844;
+
+  --shadow-soft: 0px 4px 20px rgba(0, 0, 0, 0.4);
+  --shadow-hover: 0px 6px 24px rgba(0, 0, 0, 0.6);
+}
+
 @layer base {
   body {
     background-color: var(--color-surface);

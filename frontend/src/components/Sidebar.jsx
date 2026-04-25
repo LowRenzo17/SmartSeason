@@ -1,11 +1,28 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LayoutDashboard, LogOut, Trees, Bell, X } from 'lucide-react';
+import { LayoutDashboard, LogOut, Trees, Bell, X, Moon, Sun } from 'lucide-react';
 
 export default function Sidebar({ isOpen, setIsOpen }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [isDark, setIsDark] = useState(false);
+
+  useEffect(() => {
+    setIsDark(document.documentElement.classList.contains('dark'));
+  }, []);
+
+  const toggleTheme = () => {
+    if (isDark) {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+      setIsDark(false);
+    } else {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+      setIsDark(true);
+    }
+  };
 
   const navItems = [
     { name: 'Dashboard', path: '/', icon: LayoutDashboard },
@@ -65,13 +82,22 @@ export default function Sidebar({ isOpen, setIsOpen }) {
             <p className="text-[12px] text-on-surface-variant capitalize">{user?.role.toLowerCase()}</p>
           </div>
         </div>
-        <button
-          onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-4 py-2 rounded-md text-[14px] font-medium text-secondary hover:bg-secondary-container transition-colors"
-        >
-          <LogOut size={18} />
-          Logout
-        </button>
+        <div className="flex flex-col gap-1">
+          <button
+            onClick={toggleTheme}
+            className="w-full flex items-center gap-3 px-4 py-2 rounded-md text-[14px] font-medium text-on-surface-variant hover:bg-surface-container transition-colors"
+          >
+            {isDark ? <Sun size={18} /> : <Moon size={18} />}
+            {isDark ? 'Light Mode' : 'Dark Mode'}
+          </button>
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-4 py-2 rounded-md text-[14px] font-medium text-secondary hover:bg-secondary-container transition-colors"
+          >
+            <LogOut size={18} />
+            Logout
+          </button>
+        </div>
       </div>
     </aside>
   );
