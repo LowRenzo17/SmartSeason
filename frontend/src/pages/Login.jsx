@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Leaf, Lock, User } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 export default function Login() {
   const [username, setUsername] = useState('');
@@ -18,9 +19,11 @@ export default function Login() {
     
     const success = await login(username, password);
     if (success) {
+      toast.success('Signed in successfully');
       navigate('/');
     } else {
       setError('Invalid username or password');
+      toast.error('Sign in failed');
     }
     setIsLoading(false);
   };

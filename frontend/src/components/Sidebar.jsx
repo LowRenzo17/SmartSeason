@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { LayoutDashboard, LogOut, Trees, Bell, X, Moon, Sun } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 export default function Sidebar({ isOpen, setIsOpen }) {
   const { user, logout } = useAuth();
@@ -17,10 +18,12 @@ export default function Sidebar({ isOpen, setIsOpen }) {
       document.documentElement.classList.remove('dark');
       localStorage.setItem('theme', 'light');
       setIsDark(false);
+      toast('Light Mode enabled', { icon: '☀️' });
     } else {
       document.documentElement.classList.add('dark');
       localStorage.setItem('theme', 'dark');
       setIsDark(true);
+      toast('Dark Mode enabled', { icon: '🌙' });
     }
   };
 
@@ -30,6 +33,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
 
   const handleLogout = () => {
     logout();
+    toast.success('Successfully logged out');
     navigate('/login');
   };
 

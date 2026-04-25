@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import StatusBadge from './StatusBadge';
 import { Leaf, Search, Download, Trash2 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import { API_URL } from '../config';
@@ -54,11 +55,12 @@ export default function FieldTable({ fields, onRefresh }) {
   const confirmDelete = async (fieldId) => {
     try {
       await axios.delete(`${API_URL}/fields/${fieldId}`);
+      toast.success('Field successfully deleted');
       setFieldToDelete(null);
       if (onRefresh) onRefresh();
     } catch (err) {
       console.error(err);
-      alert('Failed to delete field.');
+      toast.error('Failed to delete field');
     }
   };
 

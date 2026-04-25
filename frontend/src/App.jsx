@@ -1,5 +1,6 @@
 import React, { Suspense, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import { useAuth } from './context/AuthContext';
 import { Loader2 } from 'lucide-react';
 
@@ -64,6 +65,15 @@ const PrivateRoute = ({ children }) => {
 function App() {
   return (
     <BrowserRouter>
+      <Toaster 
+        position="top-right" 
+        toastOptions={{
+          className: 'dark:bg-surface-container-highest dark:text-on-surface text-[14px] font-medium shadow-hover rounded-lg border border-outline-variant/30',
+          success: {
+            iconTheme: { primary: '#276b4a', secondary: '#ffffff' },
+          },
+        }}
+      />
       <InactivityMonitor />
       <Suspense fallback={<PageLoader />}>
         <Routes>
