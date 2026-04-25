@@ -1,0 +1,54 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           Int         @id @default(autoincrement())
+  username     String      @unique
+  passwordHash String
+  role         Role        @default(AGENT)
+  fields       Field[]     @relation("AgentFields")
+  notes        FieldNote[]
+}
+
+model Field {
+  id           Int         @id @default(autoincrement())
+  name         String
+  cropType     String
+  plantingDate DateTime
+  currentStage Stage       @default(PLANTED)
+  
+  agentId      Int?
+  agent        User?       @relation("AgentFields", fields: [agentId], references: [id])
+  
+  notes        FieldNote[]
+}
+
+model FieldNote {
+  id        Int      @id @default(autoincrement())
+  content   String
+  createdAt DateTime @default(now())
+  
+  fieldId   Int
+  field     Field    @relation(fields: [fieldId], references: [id])
+  
+  authorId  Int
+  author    User     @relation(fields: [authorId], references: [id])
+}
+
+enum Role {
+  ADMIN
+  AGENT
+}
+
+enum Stage {
+  PLANTED
+  GROWING
+  READY
+  HARVESTED
+}
