@@ -107,7 +107,7 @@ export default function FieldTable({ fields, onRefresh }) {
               <tr 
                 key={field.id}
                 onClick={() => navigate(`/fields/${field.id}`)}
-                className="border-b border-outline-variant/50 hover:bg-[#f2f4f2] cursor-pointer transition-colors group"
+                className="border-b border-outline-variant/50 hover:bg-surface-container cursor-pointer transition-colors group"
               >
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-3">
