@@ -39,6 +39,7 @@ async function main() {
   });
 
   console.log('Clearing old fields...');
+  await prisma.cropDiagnosis.deleteMany();
   await prisma.fieldNote.deleteMany();
   await prisma.field.deleteMany();
 

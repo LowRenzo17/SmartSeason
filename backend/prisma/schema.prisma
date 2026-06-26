@@ -14,6 +14,7 @@ model User {
   role         Role        @default(AGENT)
   fields       Field[]     @relation("AgentFields")
   notes        FieldNote[]
+  diagnoses    CropDiagnosis[]
 }
 
 model Field {
@@ -27,6 +28,7 @@ model Field {
   agent        User?       @relation("AgentFields", fields: [agentId], references: [id])
   
   notes        FieldNote[]
+  diagnoses    CropDiagnosis[]
 }
 
 model FieldNote {
@@ -35,10 +37,32 @@ model FieldNote {
   createdAt DateTime @default(now())
   
   fieldId   Int
-  field     Field    @relation(fields: [fieldId], references: [id])
+  field     Field    @relation(fields: [fieldId], references: [id], onDelete: Cascade)
   
   authorId  Int
   author    User     @relation(fields: [authorId], references: [id])
+}
+
+model CropDiagnosis {
+  id              Int      @id @default(autoincrement())
+  cropType        String?
+  symptoms        String?
+  imageDataUrl    String
+  suspectedIssue  String
+  severity        String
+  confidence      Int
+  summary         String
+  remedies        String[]
+  prevention      String[]
+  escalation      String
+  source          String   @default("fallback")
+  createdAt       DateTime @default(now())
+
+  fieldId         Int
+  field           Field    @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+
+  authorId        Int
+  author          User     @relation(fields: [authorId], references: [id])
 }
 
 enum Role {

@@ -151,9 +151,6 @@ router.delete('/:id', authenticate, authorize(['ADMIN']), async (req, res) => {
     const field = await prisma.field.findUnique({ where: { id: fieldId } });
     if (!field) return res.status(404).json({ error: 'Not found' });
     
-    // Manually delete related notes first to prevent foreign key constraints
-    await prisma.fieldNote.deleteMany({ where: { fieldId } });
-    
     await prisma.field.delete({ where: { id: fieldId } });
     
     res.json({ message: 'Field deleted successfully' });

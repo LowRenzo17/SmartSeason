@@ -1,17 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LayoutDashboard, LogOut, Trees, Bell, X, Moon, Sun } from 'lucide-react';
+import { LayoutDashboard, LogOut, X, Moon, Sun, Stethoscope } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function Sidebar({ isOpen, setIsOpen }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [isDark, setIsDark] = useState(false);
-
-  useEffect(() => {
-    setIsDark(document.documentElement.classList.contains('dark'));
-  }, []);
+  const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
 
   const toggleTheme = () => {
     if (isDark) {
@@ -29,6 +25,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
 
   const navItems = [
     { name: 'Dashboard', path: '/', icon: LayoutDashboard },
+    { name: 'Crop Doctor', path: '/diagnose', icon: Stethoscope },
   ];
 
   const handleLogout = () => {
@@ -63,7 +60,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
               onClick={() => setIsOpen(false)}
               className={({ isActive }) => 
                 `flex items-center gap-3 px-4 py-3 rounded-md text-[14px] font-medium transition-colors ${
-                  (isActive && item.path === '/') 
+                  isActive
                   ? 'bg-primary-container text-on-primary-container' 
                   : 'text-on-surface-variant hover:bg-surface-container'
                 }`

@@ -1,12 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
 import { API_URL } from '../config';
 import { useAuth } from '../context/AuthContext';
-import { ArrowLeft, Save, CheckCircle2, ChevronDown, CloudRain, Sun, Leaf, Cloud, Wind, X } from 'lucide-react';
+import { ArrowLeft, Save, CloudRain, Sun, Leaf, X, Stethoscope } from 'lucide-react';
 import StatusBadge from '../components/StatusBadge';
 import ActivityFeed from '../components/ActivityFeed';
 import SoilIntelligenceCard from '../components/SoilIntelligenceCard';
+import DiagnosisCard from '../components/DiagnosisCard';
 
 export default function FieldDetail() {
   const { id } = useParams();
@@ -15,6 +16,7 @@ export default function FieldDetail() {
   const [noteContent, setNoteContent] = useState('');
   const [loading, setLoading] = useState(true);
   const [agents, setAgents] = useState([]);
+  const [diagnoses, setDiagnoses] = useState([]);
   
   // Weather state
   const [weather, setWeather] = useState(null);
@@ -26,36 +28,7 @@ export default function FieldDetail() {
 
   const stages = ['PLANTED', 'GROWING', 'READY', 'HARVESTED'];
 
-  useEffect(() => {
-    fetchField();
-    fetchWeather();
-    if (user?.role === 'ADMIN') {
-      fetchAgents();
-    }
-  }, [id, user]);
-
-  const fetchWeather = async () => {
-    try {
-      // Narok, Kenya coordinates: Lat -1.0833, Lon 35.8667
-      const res = await axios.get('https://api.open-meteo.com/v1/forecast?latitude=-1.0833&longitude=35.8667&current_weather=true&daily=temperature_2m_max,temperature_2m_min&timezone=Africa%2FNairobi');
-      setWeather(res.data);
-      setWeatherLoading(false);
-    } catch (err) {
-      console.error('Weather fetch error:', err);
-      setWeatherLoading(false);
-    }
-  };
-
-  const fetchAgents = async () => {
-    try {
-      const res = await axios.get(`${API_URL}/fields/agents?t=${Date.now()}`);
-      setAgents(res.data);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const fetchField = async () => {
+  async function fetchField() {
     try {
       const res = await axios.get(`${API_URL}/fields/${id}?t=${Date.now()}`);
       setField(res.data);
@@ -64,7 +37,55 @@ export default function FieldDetail() {
       console.error(err);
       setLoading(false);
     }
-  };
+  }
+
+  useEffect(() => {
+    async function loadField() {
+      try {
+        const res = await axios.get(`${API_URL}/fields/${id}?t=${Date.now()}`);
+        setField(res.data);
+        setLoading(false);
+      } catch (err) {
+        console.error(err);
+        setLoading(false);
+      }
+    }
+
+    async function loadDiagnoses() {
+      try {
+        const res = await axios.get(`${API_URL}/diagnoses?fieldId=${id}&t=${Date.now()}`);
+        setDiagnoses(res.data);
+      } catch (err) {
+        console.error(err);
+        setDiagnoses([]);
+      }
+    }
+
+    async function loadWeather() {
+      try {
+        const res = await axios.get('https://api.open-meteo.com/v1/forecast?latitude=-1.0833&longitude=35.8667&current_weather=true&daily=temperature_2m_max,temperature_2m_min&timezone=Africa%2FNairobi');
+        setWeather(res.data);
+        setWeatherLoading(false);
+      } catch (err) {
+        console.error('Weather fetch error:', err);
+        setWeatherLoading(false);
+      }
+    }
+
+    async function loadAgents() {
+      try {
+        const res = await axios.get(`${API_URL}/fields/agents?t=${Date.now()}`);
+        setAgents(res.data);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    loadField();
+    loadDiagnoses();
+    loadWeather();
+    if (user?.role === 'ADMIN') loadAgents();
+  }, [id, user]);
 
   const handleUpdateStage = async (e) => {
     try {
@@ -166,6 +187,9 @@ export default function FieldDetail() {
              <button onClick={handleExport} className="px-5 py-2.5 text-[12px] uppercase font-bold tracking-widest border border-outline-variant rounded-lg text-on-surface hover:bg-surface-container transition-colors">
                  Export Data
              </button>
+             <Link to={`/diagnose?fieldId=${field.id}`} className="px-5 py-2.5 text-[12px] uppercase font-bold tracking-widest border border-primary/40 rounded-lg text-primary hover:bg-primary/10 transition-colors flex items-center gap-2">
+                 <Stethoscope size={16} /> Diagnose
+             </Link>
              {user?.role === 'ADMIN' && (
                <button 
                  onClick={() => { setEditData({ name: field.name, cropType: field.cropType }); setShowEditModal(true); }} 
@@ -213,6 +237,29 @@ export default function FieldDetail() {
                       {agents.map(ag => <option key={ag.id} value={ag.id}>{ag.username}</option>)}
                     </select>
                   )}
+               </div>
+            </div>
+
+            <div className="bg-surface-container-lowest rounded-xl p-6 shadow-soft border border-outline-variant/30">
+               <div className="flex justify-between items-start gap-4 mb-4">
+                  <div>
+                    <h3 className="text-[16px] font-semibold text-on-surface">Crop Diagnosis History</h3>
+                    <p className="text-[13px] text-on-surface-variant mt-1">AI-assisted crop health records saved for this field.</p>
+                  </div>
+                  <Link to={`/diagnose?fieldId=${field.id}`} className="text-[12px] uppercase font-bold tracking-widest text-primary hover:underline whitespace-nowrap">
+                    New Diagnosis
+                  </Link>
+               </div>
+               <div className="space-y-4">
+                 {diagnoses.length === 0 ? (
+                   <div className="bg-surface-container rounded-lg p-5 text-center text-[14px] text-on-surface-variant">
+                     No crop diagnoses saved for this field yet.
+                   </div>
+                 ) : (
+                   diagnoses.slice(0, 3).map(item => (
+                     <DiagnosisCard key={item.id} diagnosis={item} compact />
+                   ))
+                 )}
                </div>
             </div>
          </div>

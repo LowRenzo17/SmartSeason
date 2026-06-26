@@ -8,6 +8,7 @@ SmartSeason is an agricultural tech operational dashboard designed for farm mana
 - **Live Telemetry & Environmental Data**: Integrates live localized weather API data (Open-Meteo) alongside dynamic simulated Soil Intelligence (Moisture, pH, Nitrogen levels).
 - **Field Inventory Management**: Robust tracking of fields including planting date, crop type, lifecycle stages (Planted, Growing, Ready, Harvested), and automated risk statuses (Active, At Risk, Completed).
 - **Activity Logging**: Track all actions chronologically to ensure traceability and operational accountability.
+- **AI Crop Diagnosis**: Upload crop images, record symptoms, receive disease/remedy guidance, and save diagnosis history per field. Works in demo-assist mode by default and can use OpenAI vision when `OPENAI_API_KEY` is configured.
 - **Data Portability**: Instantly export comprehensive field histories or global field inventories into CSV formats.
 - **Secure By Default**: Hardened against vulnerabilities with rigorous ID validations, Helmet headers, Rate Limiting, and JWT token authentication.
 
@@ -62,8 +63,8 @@ npm run dev
 Navigate to `http://localhost:5173` to access the application.
 
 ## Demo Credentials
-*Admin Account:* `admin` / `password`
-*Agent Account:* `agent1` / `password`
+*Admin Account:* `admin` / `admin123`
+*Agent Account:* `agent1` / `agent123`
 
 ## License
 MIT License

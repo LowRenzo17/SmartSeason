@@ -36,10 +36,11 @@ app.use('/api/', generalLimiter);
 
 // Cookie security
 app.use(cookieParser());
-app.use(express.json({ limit: '10kb' })); // Limit payload size
+app.use(express.json({ limit: '6mb' })); // Allows crop image diagnosis uploads while keeping payloads bounded.
 
 const authRoutes = require('./src/routes/auth');
 const fieldRoutes = require('./src/routes/fields');
+const diagnosisRoutes = require('./src/routes/diagnoses');
 
 // Health check endpoint
 app.get('/api/ping', (req, res) => {
@@ -48,34 +49,64 @@ app.get('/api/ping', (req, res) => {
 
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/fields', fieldRoutes);
+app.use('/api/diagnoses', diagnosisRoutes);
 app.use('/api/dashboard/summary', require('./src/routes/dashboard'));
 
 const { execSync } = require('child_process');
 const { PrismaClient } = require('@prisma/client');
 
-async function initializeDatabase() {
-  try {
-    console.log('Database Initialization: Ensuring database schema is up-to-date...');
-    execSync('npx prisma db push --accept-data-loss', { stdio: 'inherit' });
+function wait(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 
-    const tempPrisma = new PrismaClient();
-    const userCount = await tempPrisma.user.count();
-    if (userCount === 0) {
-      console.log('Database Initialization: Empty database detected. Seeding demo data...');
-      execSync('node seed.js', { stdio: 'inherit' });
-      console.log('Database Initialization: Seeding completed successfully.');
-    } else {
-      console.log('Database Initialization: Database already contains data. Skipping seeding.');
+async function initializeDatabase() {
+  let tempPrisma;
+  const maxRetries = parseInt(process.env.DB_INIT_RETRIES || '5', 10);
+  const retryDelayMs = parseInt(process.env.DB_INIT_RETRY_DELAY_MS || '3000', 10);
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`Database Initialization: Ensuring database schema is up-to-date... (attempt ${attempt}/${maxRetries})`);
+      const acceptDataLoss = process.env.PRISMA_ACCEPT_DATA_LOSS === 'true' ? ' --accept-data-loss' : '';
+      execSync(`npx prisma db push --skip-generate${acceptDataLoss}`, { stdio: 'inherit' });
+
+      tempPrisma = new PrismaClient();
+      const userCount = await tempPrisma.user.count();
+      if (userCount === 0) {
+        console.log('Database Initialization: Empty database detected. Seeding demo data...');
+        execSync('node seed.js', { stdio: 'inherit' });
+        console.log('Database Initialization: Seeding completed successfully.');
+      } else {
+        console.log('Database Initialization: Database already contains data. Skipping seeding.');
+      }
+
+      return;
+    } catch (error) {
+      console.error('Database Initialization: Failed to initialize database:', error.message || error);
+
+      if (attempt === maxRetries) {
+        throw error;
+      }
+
+      console.log(`Database Initialization: Retrying in ${retryDelayMs}ms...`);
+      await wait(retryDelayMs);
+    } finally {
+      if (tempPrisma) {
+        await tempPrisma.$disconnect();
+        tempPrisma = null;
+      }
     }
-    await tempPrisma.$disconnect();
-  } catch (error) {
-    console.error('Database Initialization: Failed to initialize database:', error);
   }
 }
 
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, async () => {
-  console.log(`Server running on port ${PORT}`);
-  // Auto-initialize DB schema and seed data on startup
-  await initializeDatabase();
-});
+initializeDatabase()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+  })
+  .catch((error) => {
+    console.error('Server startup aborted because the database is unavailable:', error.message || error);
+    process.exit(1);
+  });

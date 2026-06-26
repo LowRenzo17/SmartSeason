@@ -9,6 +9,7 @@ import Layout from './components/Layout';
 
 const Dashboard = React.lazy(() => import('./pages/Dashboard'));
 const FieldDetail = React.lazy(() => import('./pages/FieldDetail'));
+const CropDoctor = React.lazy(() => import('./pages/CropDoctor'));
 
 const PageLoader = () => (
   <div className="flex items-center justify-center h-screen w-full bg-surface">
@@ -91,6 +92,14 @@ function App() {
             element={
               <PrivateRoute>
                 <FieldDetail />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/diagnose"
+            element={
+              <PrivateRoute>
+                <CropDoctor />
               </PrivateRoute>
             }
           />
