@@ -106,8 +106,10 @@ export default function CropDoctor() {
         symptoms
       });
       setDiagnosis(res.data);
-      setHistory(prev => [res.data, ...prev]);
       toast.success('Diagnosis saved to field history');
+
+      const historyRes = await axios.get(`${API_URL}/diagnoses?fieldId=${fieldId}&t=${Date.now()}`);
+      setHistory(historyRes.data);
     } catch (err) {
       console.error(err);
       toast.error(err.response?.data?.error || 'Diagnosis failed');
