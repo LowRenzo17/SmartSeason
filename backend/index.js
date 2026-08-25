@@ -119,13 +119,10 @@ async function initializeDatabase() {
 }
 
 const PORT = process.env.PORT || 3001;
-initializeDatabase()
-  .then(() => {
-    app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
-    });
-  })
-  .catch((error) => {
-    console.error('Server startup aborted because the database is unavailable:', error.message || error);
-    process.exit(1);
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+
+  initializeDatabase().catch((error) => {
+    console.error('Database initialization failed after startup:', error.message || error);
   });
+});
