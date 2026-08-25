@@ -55,8 +55,7 @@ router.post('/login', async (req, res) => {
 });
 
 router.post('/register', async (req, res) => {
-  const { username, password, role, fields } = req.body;
-  const accountRole = role === 'ADMIN' ? 'ADMIN' : 'AGENT';
+  const { username, password, fields } = req.body;
 
   // Validate input format
   if (!validateUsername(username) || !validatePassword(password)) {
@@ -65,26 +64,17 @@ router.post('/register', async (req, res) => {
 
   const agentFields = Array.isArray(fields) ? fields : [];
 
-  if (accountRole === 'ADMIN') {
-    const existingAdminCount = await prisma.user.count({ where: { role: 'ADMIN' } });
-    if (existingAdminCount > 0) {
-      return res.status(403).json({ error: 'Administrator registration is not allowed through the public form.' });
-    }
+  if (agentFields.length === 0) {
+    return res.status(400).json({ error: 'Agent registration requires at least one field with a name and crop type.' });
   }
 
-  if (accountRole === 'AGENT') {
-    if (agentFields.length === 0) {
-      return res.status(400).json({ error: 'Agent registration requires at least one field with a name and crop type.' });
-    }
+  const isValidFields = agentFields.every(field =>
+    field && typeof field.name === 'string' && field.name.trim().length >= 2 &&
+    typeof field.cropType === 'string' && field.cropType.trim().length >= 2
+  );
 
-    const isValidFields = agentFields.every(field => 
-      field && typeof field.name === 'string' && field.name.trim().length >= 2 &&
-      typeof field.cropType === 'string' && field.cropType.trim().length >= 2
-    );
-
-    if (!isValidFields) {
-      return res.status(400).json({ error: 'Each field must include a valid name and crop type.' });
-    }
+  if (!isValidFields) {
+    return res.status(400).json({ error: 'Each field must include a valid name and crop type.' });
   }
 
   try {
@@ -96,18 +86,18 @@ router.post('/register', async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
 
-    const fieldCreateData = accountRole === 'AGENT' ? agentFields.map(field => ({
+    const fieldCreateData = agentFields.map(field => ({
       name: field.name.trim(),
       cropType: field.cropType.trim(),
       plantingDate: new Date(),
-    })) : [];
+    }));
 
     const user = await prisma.user.create({
       data: {
         username,
         passwordHash,
-        role: accountRole,
-        ...(accountRole === 'AGENT' ? { fields: { create: fieldCreateData } } : {})
+        role: 'AGENT',
+        fields: { create: fieldCreateData }
       },
       include: { fields: true }
     });

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Leaf, Lock, User, Shield, Eye, EyeOff, Sun, Moon, Loader2, LogIn, UserPlus } from 'lucide-react';
@@ -9,7 +9,6 @@ export default function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [role, setRole] = useState('AGENT'); // 'AGENT' or 'ADMIN'
   const [signupFields, setSignupFields] = useState([{ name: '', cropType: '' }]);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
@@ -36,7 +35,6 @@ export default function Login() {
     setUsername('');
     setPassword('');
     setConfirmPassword('');
-    setRole('AGENT');
     setSignupFields([{ name: '', cropType: '' }]);
     setError('');
   };
@@ -96,36 +94,25 @@ export default function Login() {
       return;
     }
 
-    if (role === 'AGENT') {
-      const cleanedFields = signupFields.map((field) => ({
-        name: field.name.trim(),
-        cropType: field.cropType.trim(),
-      }));
+    const cleanedFields = signupFields.map((field) => ({
+      name: field.name.trim(),
+      cropType: field.cropType.trim(),
+    }));
 
-      if (cleanedFields.some(field => !field.name || !field.cropType)) {
-        setError('Please add at least one field with both name and crop type.');
-        toast.error('Registration failed');
-        setIsLoading(false);
-        return;
-      }
+    if (cleanedFields.some(field => !field.name || !field.cropType)) {
+      setError('Please add at least one field with both name and crop type.');
+      toast.error('Registration failed');
+      setIsLoading(false);
+      return;
+    }
 
-      const result = await register(username, password, role, cleanedFields);
-      if (result.success) {
-        toast.success('Account created successfully');
-        navigate('/');
-      } else {
-        setError(result.message);
-        toast.error(result.message);
-      }
+    const result = await register(username, password, cleanedFields);
+    if (result.success) {
+      toast.success('Account created successfully');
+      navigate('/');
     } else {
-      const result = await register(username, password, role);
-      if (result.success) {
-        toast.success('Account created successfully');
-        navigate('/');
-      } else {
-        setError(result.message);
-        toast.error(result.message);
-      }
+      setError(result.message);
+      toast.error(result.message);
     }
 
     setIsLoading(false);
@@ -253,88 +240,53 @@ export default function Login() {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-[11px] font-bold tracking-[0.05em] uppercase text-on-surface-variant mb-1.5">Select Portal Role</label>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setRole('AGENT')}
-                    className={`flex flex-col items-center p-2.5 rounded-[10px] border transition-all text-left cursor-pointer ${
-                      role === 'AGENT'
-                        ? 'border-primary bg-primary/5 text-primary dark:text-emerald-400 dark:border-emerald-500'
-                        : 'border-outline-variant/60 bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container/50'
-                    }`}
-                  >
-                    <User size={16} className="mb-1" />
-                    <span className="text-[12px] font-bold">Field Agent</span>
-                    <span className="text-[9px] opacity-75 text-center leading-tight mt-0.5">Collect field & crop information</span>
-                  </button>
-                  
-                  <button
-                    type="button"
-                    onClick={() => setRole('ADMIN')}
-                    className={`flex flex-col items-center p-2.5 rounded-[10px] border transition-all text-left cursor-pointer ${
-                      role === 'ADMIN'
-                        ? 'border-primary bg-primary/5 text-primary dark:text-emerald-400 dark:border-emerald-500'
-                        : 'border-outline-variant/60 bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container/50'
-                    }`}
-                  >
-                    <Shield size={16} className="mb-1" />
-                    <span className="text-[12px] font-bold">Administrator</span>
-                    <span className="text-[9px] opacity-75 text-center leading-tight mt-0.5">Full access & user delegation</span>
-                  </button>
-                </div>
-              </div>
-
-              {role === 'AGENT' && (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-[11px] font-bold tracking-[0.05em] uppercase text-on-surface-variant mb-1.5">Agent Fields</p>
-                      <p className="text-[12px] text-on-surface-variant">Add one or more fields that you will manage.</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={addSignupField}
-                      className="text-[11px] uppercase font-bold tracking-[0.08em] text-primary hover:text-primary-container"
-                    >
-                      + Add Field
-                    </button>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-[11px] font-bold tracking-[0.05em] uppercase text-on-surface-variant mb-1.5">Agent Fields</p>
+                    <p className="text-[12px] text-on-surface-variant">Add one or more fields that you will manage.</p>
                   </div>
-
-                  {signupFields.map((field, index) => (
-                    <div key={index} className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto]">
-                      <div className="grid gap-3 md:grid-cols-2">
-                        <input
-                          type="text"
-                          value={field.name}
-                          onChange={(e) => handleFieldChange(index, 'name', e.target.value)}
-                          placeholder="Field name"
-                          className="w-full h-[38px] px-3 bg-surface-container-lowest border border-outline-variant rounded-[10px] text-[14px] text-on-surface placeholder:text-on-surface-variant/40 focus:ring-1 focus:ring-primary focus:border-primary outline-none"
-                          required
-                        />
-                        <input
-                          type="text"
-                          value={field.cropType}
-                          onChange={(e) => handleFieldChange(index, 'cropType', e.target.value)}
-                          placeholder="Crop type"
-                          className="w-full h-[38px] px-3 bg-surface-container-lowest border border-outline-variant rounded-[10px] text-[14px] text-on-surface placeholder:text-on-surface-variant/40 focus:ring-1 focus:ring-primary focus:border-primary outline-none"
-                          required
-                        />
-                      </div>
-                      {signupFields.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removeSignupField(index)}
-                          className="h-[38px] rounded-[10px] border border-atrisk text-atrisk bg-atrisk/10 hover:bg-atrisk/20 transition-colors"
-                        >
-                          Remove
-                        </button>
-                      )}
-                    </div>
-                  ))}
+                  <button
+                    type="button"
+                    onClick={addSignupField}
+                    className="text-[11px] uppercase font-bold tracking-[0.08em] text-primary hover:text-primary-container"
+                  >
+                    + Add Field
+                  </button>
                 </div>
-              )}
+
+                {signupFields.map((field, index) => (
+                  <div key={index} className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto]">
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <input
+                        type="text"
+                        value={field.name}
+                        onChange={(e) => handleFieldChange(index, 'name', e.target.value)}
+                        placeholder="Field name"
+                        className="w-full h-[38px] px-3 bg-surface-container-lowest border border-outline-variant rounded-[10px] text-[14px] text-on-surface placeholder:text-on-surface-variant/40 focus:ring-1 focus:ring-primary focus:border-primary outline-none"
+                        required
+                      />
+                      <input
+                        type="text"
+                        value={field.cropType}
+                        onChange={(e) => handleFieldChange(index, 'cropType', e.target.value)}
+                        placeholder="Crop type"
+                        className="w-full h-[38px] px-3 bg-surface-container-lowest border border-outline-variant rounded-[10px] text-[14px] text-on-surface placeholder:text-on-surface-variant/40 focus:ring-1 focus:ring-primary focus:border-primary outline-none"
+                        required
+                      />
+                    </div>
+                    {signupFields.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeSignupField(index)}
+                        className="h-[38px] rounded-[10px] border border-atrisk text-atrisk bg-atrisk/10 hover:bg-atrisk/20 transition-colors"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
             </>
           )}
 

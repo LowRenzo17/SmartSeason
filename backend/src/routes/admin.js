@@ -14,6 +14,69 @@ const validatePassword = (password) => {
   return typeof password === 'string' && password.length >= 6 && password.length <= 100;
 };
 
+// List administrators
+router.get('/admins', authenticate, authorize(['ADMIN']), async (req, res) => {
+  try {
+    const admins = await prisma.user.findMany({
+      where: { role: 'ADMIN' },
+      orderBy: { createdAt: 'asc' },
+      select: {
+        id: true,
+        username: true,
+        createdAt: true,
+        _count: { select: { agents: true } }
+      }
+    });
+
+    res.json(admins.map(admin => ({
+      id: admin.id,
+      username: admin.username,
+      createdAt: admin.createdAt,
+      agentCount: admin._count.agents
+    })));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Create a new administrator
+router.post('/admins', authenticate, authorize(['ADMIN']), async (req, res) => {
+  const { username, password } = req.body;
+
+  if (!validateUsername(username) || !validatePassword(password)) {
+    return res.status(400).json({ error: 'Invalid credentials format. Username must be 3-50 alphanumeric characters. Password must be 6-100 characters.' });
+  }
+
+  try {
+    const existingUser = await prisma.user.findUnique({ where: { username } });
+    if (existingUser) {
+      return res.status(400).json({ error: 'Username is already taken' });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(password, salt);
+
+    const admin = await prisma.user.create({
+      data: {
+        username,
+        passwordHash,
+        role: 'ADMIN'
+      }
+    });
+
+    res.status(201).json({
+      id: admin.id,
+      username: admin.username,
+      createdAt: admin.createdAt,
+      agentCount: 0
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // List agents created by the authenticated admin
 router.get('/agents', authenticate, authorize(['ADMIN']), async (req, res) => {
   try {

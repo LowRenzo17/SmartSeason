@@ -1,24 +1,23 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState } from 'react';
 import axios from 'axios';
 import { API_URL } from '../config';
 
 const AuthContext = createContext();
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
+  const [user, setUser] = useState(() => {
     const token = localStorage.getItem('token');
     const storedUser = localStorage.getItem('user');
     if (token && storedUser) {
-      setUser(JSON.parse(storedUser));
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      return JSON.parse(storedUser);
     }
-    setLoading(false);
-  }, []);
+
+    return null;
+  });
 
   const login = async (username, password) => {
     try {
@@ -34,9 +33,9 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const register = async (username, password, role, fields) => {
+  const register = async (username, password, fields) => {
     try {
-      const body = { username, password, role: 'AGENT' };
+      const body = { username, password };
       if (Array.isArray(fields)) {
         body.fields = fields;
       }
@@ -62,8 +61,8 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
-      {!loading && children}
+    <AuthContext.Provider value={{ user, login, register, logout }}>
+      {children}
     </AuthContext.Provider>
   );
 };
