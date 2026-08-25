@@ -11,7 +11,12 @@ router.get('/', authenticate, async (req, res) => {
   try {
     let fields;
     if (req.user.role === 'ADMIN') {
-      fields = await prisma.field.findMany({ include: { agent: true } });
+      fields = await prisma.field.findMany({
+        where: {
+          agent: { createdByAdminId: req.user.id }
+        },
+        include: { agent: true }
+      });
     } else {
       fields = await prisma.field.findMany({
         where: { agentId: req.user.id },
@@ -34,11 +39,18 @@ router.get('/', authenticate, async (req, res) => {
   }
 });
 
-// Admin strictly: Get agents
+// Admin strictly: Get agents created by this admin
 router.get('/agents', authenticate, authorize(['ADMIN']), async (req, res) => {
   try {
-    const agents = await prisma.user.findMany({ where: { role: 'AGENT' }, select: { id: true, username: true } });
-    res.json(agents);
+    const agents = await prisma.user.findMany({
+      where: { role: 'AGENT', createdByAdminId: req.user.id },
+      select: { id: true, username: true, _count: { select: { fields: true } } }
+    });
+    res.json(agents.map(agent => ({
+      id: agent.id,
+      username: agent.username,
+      fieldCount: agent._count.fields
+    })));
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }
@@ -121,10 +133,17 @@ router.put('/:id', authenticate, async (req, res) => {
     if (currentStage) dataToUpdate.currentStage = currentStage;
     if (name) dataToUpdate.name = name;
     if (cropType) dataToUpdate.cropType = cropType;
+
     if (req.user.role === 'ADMIN' && typeof agentId !== 'undefined') {
       if (agentId) {
         const parsedId = parseInt(agentId);
         if (isNaN(parsedId)) return res.status(400).json({ error: 'Invalid agentId' });
+
+        const targetAgent = await prisma.user.findUnique({ where: { id: parsedId } });
+        if (!targetAgent || targetAgent.role !== 'AGENT' || targetAgent.createdByAdminId !== req.user.id) {
+          return res.status(403).json({ error: 'Agent not found or not managed by this admin' });
+        }
+
         dataToUpdate.agentId = parsedId;
       } else {
         dataToUpdate.agentId = null;

@@ -34,9 +34,14 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const register = async (username, password, role) => {
+  const register = async (username, password, role, fields) => {
     try {
-      const res = await axios.post(`${API_URL}/auth/register`, { username, password, role });
+      const body = { username, password, role: 'AGENT' };
+      if (Array.isArray(fields)) {
+        body.fields = fields;
+      }
+
+      const res = await axios.post(`${API_URL}/auth/register`, body);
       setUser(res.data.user);
       localStorage.setItem('token', res.data.token);
       localStorage.setItem('user', JSON.stringify(res.data.user));

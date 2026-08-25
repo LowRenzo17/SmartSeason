@@ -10,6 +10,7 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [role, setRole] = useState('AGENT'); // 'AGENT' or 'ADMIN'
+  const [signupFields, setSignupFields] = useState([{ name: '', cropType: '' }]);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -36,6 +37,7 @@ export default function Login() {
     setPassword('');
     setConfirmPassword('');
     setRole('AGENT');
+    setSignupFields([{ name: '', cropType: '' }]);
     setError('');
   };
 
@@ -53,6 +55,18 @@ export default function Login() {
       toast.error('Sign in failed');
     }
     setIsLoading(false);
+  };
+
+  const handleFieldChange = (index, fieldName, value) => {
+    setSignupFields(prev => prev.map((field, idx) => idx === index ? { ...field, [fieldName]: value } : field));
+  };
+
+  const addSignupField = () => {
+    setSignupFields(prev => [...prev, { name: '', cropType: '' }]);
+  };
+
+  const removeSignupField = (index) => {
+    setSignupFields(prev => prev.filter((_, idx) => idx !== index));
   };
 
   const handleRegister = async (e) => {
@@ -82,14 +96,38 @@ export default function Login() {
       return;
     }
 
-    const result = await register(username, password, role);
-    if (result.success) {
-      toast.success('Account created successfully');
-      navigate('/');
+    if (role === 'AGENT') {
+      const cleanedFields = signupFields.map((field) => ({
+        name: field.name.trim(),
+        cropType: field.cropType.trim(),
+      }));
+
+      if (cleanedFields.some(field => !field.name || !field.cropType)) {
+        setError('Please add at least one field with both name and crop type.');
+        toast.error('Registration failed');
+        setIsLoading(false);
+        return;
+      }
+
+      const result = await register(username, password, role, cleanedFields);
+      if (result.success) {
+        toast.success('Account created successfully');
+        navigate('/');
+      } else {
+        setError(result.message);
+        toast.error(result.message);
+      }
     } else {
-      setError(result.message);
-      toast.error(result.message);
+      const result = await register(username, password, role);
+      if (result.success) {
+        toast.success('Account created successfully');
+        navigate('/');
+      } else {
+        setError(result.message);
+        toast.error(result.message);
+      }
     }
+
     setIsLoading(false);
   };
 
@@ -247,6 +285,56 @@ export default function Login() {
                   </button>
                 </div>
               </div>
+
+              {role === 'AGENT' && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-[11px] font-bold tracking-[0.05em] uppercase text-on-surface-variant mb-1.5">Agent Fields</p>
+                      <p className="text-[12px] text-on-surface-variant">Add one or more fields that you will manage.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={addSignupField}
+                      className="text-[11px] uppercase font-bold tracking-[0.08em] text-primary hover:text-primary-container"
+                    >
+                      + Add Field
+                    </button>
+                  </div>
+
+                  {signupFields.map((field, index) => (
+                    <div key={index} className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto]">
+                      <div className="grid gap-3 md:grid-cols-2">
+                        <input
+                          type="text"
+                          value={field.name}
+                          onChange={(e) => handleFieldChange(index, 'name', e.target.value)}
+                          placeholder="Field name"
+                          className="w-full h-[38px] px-3 bg-surface-container-lowest border border-outline-variant rounded-[10px] text-[14px] text-on-surface placeholder:text-on-surface-variant/40 focus:ring-1 focus:ring-primary focus:border-primary outline-none"
+                          required
+                        />
+                        <input
+                          type="text"
+                          value={field.cropType}
+                          onChange={(e) => handleFieldChange(index, 'cropType', e.target.value)}
+                          placeholder="Crop type"
+                          className="w-full h-[38px] px-3 bg-surface-container-lowest border border-outline-variant rounded-[10px] text-[14px] text-on-surface placeholder:text-on-surface-variant/40 focus:ring-1 focus:ring-primary focus:border-primary outline-none"
+                          required
+                        />
+                      </div>
+                      {signupFields.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeSignupField(index)}
+                          className="h-[38px] rounded-[10px] border border-atrisk text-atrisk bg-atrisk/10 hover:bg-atrisk/20 transition-colors"
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </>
           )}
 

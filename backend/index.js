@@ -41,13 +41,32 @@ app.use(express.json({ limit: '6mb' })); // Allows crop image diagnosis uploads 
 const authRoutes = require('./src/routes/auth');
 const fieldRoutes = require('./src/routes/fields');
 const diagnosisRoutes = require('./src/routes/diagnoses');
+const adminRoutes = require('./src/routes/admin');
 
 // Health check endpoint
 app.get('/api/ping', (req, res) => {
   res.status(200).json({ status: 'ok', message: 'Server is awake' });
 });
 
+app.get('/api/db-ping', async (req, res) => {
+  let healthPrisma;
+
+  try {
+    healthPrisma = new PrismaClient();
+    await healthPrisma.$queryRaw`SELECT 1`;
+    res.status(200).json({ status: 'ok', database: 'awake' });
+  } catch (error) {
+    console.error('Database health check failed:', error.message || error);
+    res.status(500).json({ status: 'error', database: 'unreachable' });
+  } finally {
+    if (healthPrisma) {
+      await healthPrisma.$disconnect();
+    }
+  }
+});
+
 app.use('/api/auth', authLimiter, authRoutes);
+app.use('/api/admin', adminRoutes);
 app.use('/api/fields', fieldRoutes);
 app.use('/api/diagnoses', diagnosisRoutes);
 app.use('/api/dashboard/summary', require('./src/routes/dashboard'));

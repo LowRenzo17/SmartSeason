@@ -55,16 +55,36 @@ router.post('/login', async (req, res) => {
 });
 
 router.post('/register', async (req, res) => {
-  const { username, password, role } = req.body;
+  const { username, password, role, fields } = req.body;
+  const accountRole = role === 'ADMIN' ? 'ADMIN' : 'AGENT';
 
   // Validate input format
   if (!validateUsername(username) || !validatePassword(password)) {
     return res.status(400).json({ error: 'Invalid credentials format. Username must be 3-50 alphanumeric characters. Password must be 6-100 characters.' });
   }
 
-  // Validate role if provided
-  if (role && role !== 'AGENT' && role !== 'ADMIN') {
-    return res.status(400).json({ error: 'Invalid role selection' });
+  const agentFields = Array.isArray(fields) ? fields : [];
+
+  if (accountRole === 'ADMIN') {
+    const existingAdminCount = await prisma.user.count({ where: { role: 'ADMIN' } });
+    if (existingAdminCount > 0) {
+      return res.status(403).json({ error: 'Administrator registration is not allowed through the public form.' });
+    }
+  }
+
+  if (accountRole === 'AGENT') {
+    if (agentFields.length === 0) {
+      return res.status(400).json({ error: 'Agent registration requires at least one field with a name and crop type.' });
+    }
+
+    const isValidFields = agentFields.every(field => 
+      field && typeof field.name === 'string' && field.name.trim().length >= 2 &&
+      typeof field.cropType === 'string' && field.cropType.trim().length >= 2
+    );
+
+    if (!isValidFields) {
+      return res.status(400).json({ error: 'Each field must include a valid name and crop type.' });
+    }
   }
 
   try {
@@ -76,12 +96,20 @@ router.post('/register', async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
 
+    const fieldCreateData = accountRole === 'AGENT' ? agentFields.map(field => ({
+      name: field.name.trim(),
+      cropType: field.cropType.trim(),
+      plantingDate: new Date(),
+    })) : [];
+
     const user = await prisma.user.create({
       data: {
         username,
         passwordHash,
-        role: role || 'AGENT'
-      }
+        role: accountRole,
+        ...(accountRole === 'AGENT' ? { fields: { create: fieldCreateData } } : {})
+      },
+      include: { fields: true }
     });
 
     const token = jwt.sign(
@@ -90,7 +118,7 @@ router.post('/register', async (req, res) => {
       { expiresIn: JWT_EXPIRY }
     );
 
-    res.status(201).json({ token, user: { id: user.id, username: user.username, role: user.role } });
+    res.status(201).json({ token, user: { id: user.id, username: user.username, role: user.role, fields: user.fields } });
   } catch (error) {
     console.error('Registration error:', error);
     res.status(500).json({ error: 'Server error' });

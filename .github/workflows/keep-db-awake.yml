@@ -1,0 +1,21 @@
+name: Keep database awake
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+jobs:
+  ping-database:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping database health endpoint
+        env:
+          BACKEND_URL: ${{ secrets.BACKEND_URL }}
+        run: |
+          if [ -z "$BACKEND_URL" ]; then
+            echo "Missing BACKEND_URL repository secret."
+            exit 1
+          fi
+
+          curl --fail --show-error --silent "${BACKEND_URL%/}/api/db-ping"

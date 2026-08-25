@@ -8,13 +8,17 @@ datasource db {
 }
 
 model User {
-  id           Int         @id @default(autoincrement())
-  username     String      @unique
-  passwordHash String
-  role         Role        @default(AGENT)
-  fields       Field[]     @relation("AgentFields")
-  notes        FieldNote[]
-  diagnoses    CropDiagnosis[]
+  id                Int         @id @default(autoincrement())
+  username          String      @unique
+  passwordHash      String
+  role              Role        @default(AGENT)
+  createdAt         DateTime    @default(now())
+  createdByAdminId  Int?
+  createdByAdmin    User?       @relation("AdminAgents", fields: [createdByAdminId], references: [id])
+  agents            User[]      @relation("AdminAgents")
+  fields            Field[]     @relation("AgentFields")
+  notes             FieldNote[]
+  diagnoses         CropDiagnosis[]
 }
 
 model Field {
