@@ -6,6 +6,16 @@ const { computeStatus } = require('../utils/statusLogic');
 
 const prisma = new PrismaClient();
 
+function adminAgentScope(adminId) {
+  return {
+    role: 'AGENT',
+    OR: [
+      { createdByAdminId: adminId },
+      { createdByAdminId: null }
+    ]
+  };
+}
+
 // Get all fields (Agent vs Admin)
 router.get('/', authenticate, async (req, res) => {
   try {
@@ -13,7 +23,11 @@ router.get('/', authenticate, async (req, res) => {
     if (req.user.role === 'ADMIN') {
       fields = await prisma.field.findMany({
         where: {
-          agent: { createdByAdminId: req.user.id }
+          OR: [
+            { agentId: null },
+            { agent: { createdByAdminId: req.user.id } },
+            { agent: { createdByAdminId: null } }
+          ]
         },
         include: { agent: true }
       });
@@ -39,16 +53,18 @@ router.get('/', authenticate, async (req, res) => {
   }
 });
 
-// Admin strictly: Get agents created by this admin
+// Admin strictly: Get agents available to this admin
 router.get('/agents', authenticate, authorize(['ADMIN']), async (req, res) => {
   try {
     const agents = await prisma.user.findMany({
-      where: { role: 'AGENT', createdByAdminId: req.user.id },
-      select: { id: true, username: true, _count: { select: { fields: true } } }
+      where: adminAgentScope(req.user.id),
+      orderBy: { username: 'asc' },
+      select: { id: true, username: true, createdByAdminId: true, _count: { select: { fields: true } } }
     });
     res.json(agents.map(agent => ({
       id: agent.id,
       username: agent.username,
+      isUnclaimed: agent.createdByAdminId === null,
       fieldCount: agent._count.fields
     })));
   } catch (err) {
@@ -62,19 +78,41 @@ router.post('/', authenticate, authorize(['ADMIN']), async (req, res) => {
     const { name, cropType, agentId } = req.body;
     
     let parsedAgentId = null;
+    let targetAgent = null;
     if (agentId) {
       parsedAgentId = parseInt(agentId);
       if (isNaN(parsedAgentId)) return res.status(400).json({ error: 'Invalid agentId' });
+
+      targetAgent = await prisma.user.findFirst({
+        where: {
+          id: parsedAgentId,
+          ...adminAgentScope(req.user.id)
+        }
+      });
+
+      if (!targetAgent) {
+        return res.status(403).json({ error: 'Agent not found or not available to this admin' });
+      }
     }
 
-    const field = await prisma.field.create({
-      data: {
-        name,
-        cropType,
-        plantingDate: new Date(),
-        agentId: parsedAgentId,
-      },
+    const field = await prisma.$transaction(async (tx) => {
+      if (targetAgent?.createdByAdminId === null) {
+        await tx.user.update({
+          where: { id: parsedAgentId },
+          data: { createdByAdminId: req.user.id }
+        });
+      }
+
+      return tx.field.create({
+        data: {
+          name,
+          cropType,
+          plantingDate: new Date(),
+          agentId: parsedAgentId,
+        },
+      });
     });
+
     res.json(field);
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
@@ -139,9 +177,22 @@ router.put('/:id', authenticate, async (req, res) => {
         const parsedId = parseInt(agentId);
         if (isNaN(parsedId)) return res.status(400).json({ error: 'Invalid agentId' });
 
-        const targetAgent = await prisma.user.findUnique({ where: { id: parsedId } });
-        if (!targetAgent || targetAgent.role !== 'AGENT' || targetAgent.createdByAdminId !== req.user.id) {
-          return res.status(403).json({ error: 'Agent not found or not managed by this admin' });
+        const targetAgent = await prisma.user.findFirst({
+          where: {
+            id: parsedId,
+            ...adminAgentScope(req.user.id)
+          }
+        });
+
+        if (!targetAgent) {
+          return res.status(403).json({ error: 'Agent not found or not available to this admin' });
+        }
+
+        if (targetAgent.createdByAdminId === null) {
+          await prisma.user.update({
+            where: { id: parsedId },
+            data: { createdByAdminId: req.user.id }
+          });
         }
 
         dataToUpdate.agentId = parsedId;

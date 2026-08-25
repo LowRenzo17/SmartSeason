@@ -234,7 +234,11 @@ export default function FieldDetail() {
                       className="flex-1 bg-surface-container border border-outline-variant/50 rounded-lg p-3 text-[14px] font-semibold text-on-surface outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                     >
                       <option value="">Unassigned</option>
-                      {agents.map(ag => <option key={ag.id} value={ag.id}>{ag.username}</option>)}
+                      {agents.map(ag => (
+                        <option key={ag.id} value={ag.id}>
+                          {ag.username}{ag.isUnclaimed ? ' (available)' : ` (${ag.fieldCount} fields)`}
+                        </option>
+                      ))}
                     </select>
                   )}
                </div>

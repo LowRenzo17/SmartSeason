@@ -29,10 +29,20 @@ export default function Dashboard() {
       setShowModal(false);
       setNewField({ name: '', cropType: '', agentId: '' });
       fetchData();
+      fetchAgents();
       toast.success('Field created successfully');
     } catch (err) {
       console.error(err);
       toast.error(err.response?.data?.error || 'Could not create field');
+    }
+  };
+
+  const fetchAgents = async () => {
+    try {
+      const res = await axios.get(`${API_URL}/fields/agents?t=${Date.now()}`);
+      setAgents(res.data);
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -91,10 +101,7 @@ export default function Dashboard() {
       .catch((err) => console.error(err));
 
     if (user?.role === 'ADMIN') {
-      axios.get(`${API_URL}/fields/agents?t=${Date.now()}`)
-        .then((res) => setAgents(res.data))
-        .catch((err) => console.error(err));
-
+      fetchAgents();
       axios.get(`${API_URL}/admin/admins?t=${Date.now()}`)
         .then((res) => setAdmins(res.data))
         .catch((err) => console.error(err));
@@ -240,9 +247,14 @@ export default function Dashboard() {
                 >
                   <option value="">-- Unassigned --</option>
                   {agents.map(ag => (
-                    <option key={ag.id} value={ag.id}>{ag.username}</option>
+                    <option key={ag.id} value={ag.id}>
+                      {ag.username}{ag.isUnclaimed ? ' (available)' : ` (${ag.fieldCount} fields)`}
+                    </option>
                   ))}
                 </select>
+                {agents.length === 0 && (
+                  <p className="text-[12px] text-on-surface-variant mt-2">Create an agent first, then return here to assign them.</p>
+                )}
               </div>
               <div className="pt-4 flex justify-end gap-3 mt-4">
                 <button type="button" onClick={() => setShowModal(false)} className="px-5 py-2 text-[12px] uppercase font-bold tracking-widest text-secondary hover:bg-secondary-container rounded-[8px] transition-colors border border-transparent">Cancel</button>

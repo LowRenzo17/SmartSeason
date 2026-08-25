@@ -77,15 +77,23 @@ router.post('/admins', authenticate, authorize(['ADMIN']), async (req, res) => {
   }
 });
 
-// List agents created by the authenticated admin
+// List agents available to the authenticated admin
 router.get('/agents', authenticate, authorize(['ADMIN']), async (req, res) => {
   try {
     const agents = await prisma.user.findMany({
-      where: { role: 'AGENT', createdByAdminId: req.user.id },
+      where: {
+        role: 'AGENT',
+        OR: [
+          { createdByAdminId: req.user.id },
+          { createdByAdminId: null }
+        ]
+      },
+      orderBy: { username: 'asc' },
       select: {
         id: true,
         username: true,
         createdAt: true,
+        createdByAdminId: true,
         _count: { select: { fields: true, diagnoses: true, notes: true } }
       }
     });
@@ -94,6 +102,7 @@ router.get('/agents', authenticate, authorize(['ADMIN']), async (req, res) => {
       id: agent.id,
       username: agent.username,
       createdAt: agent.createdAt,
+      isUnclaimed: agent.createdByAdminId === null,
       fieldCount: agent._count.fields,
       diagnosisCount: agent._count.diagnoses,
       noteCount: agent._count.notes
